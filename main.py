@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import sys
 import json
+import time
 from PyQt5 import QtCore, QtGui, QtWidgets,  uic
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
@@ -17,15 +18,16 @@ class App(QtWidgets.QMainWindow):
 
     def load(self):
         try:
-            f = open('catalog.txt')
+            f = open('catalog.cache')
             self.catalog.data[0] = json.load(f)
             f.close()
+            self.updateLabel.setText('Последнее обновление: ' + time.ctime(self.catalog.data[0]['updated']))
             self.to_tree_level(self.catalog.data[0]['children'], self.catalogTreeWidget, 1)
         except FileNotFoundError:
             self.update_catalog()
 
     def cache(self):
-        f = open('catalog.txt', 'w')
+        f = open('catalog.cache', 'w')
         json.dump(self.catalog.data[0], f, indent='\n', ensure_ascii=False)
         f.close()
 
@@ -35,6 +37,7 @@ class App(QtWidgets.QMainWindow):
         self.refreshButton.setDisabled(True)
         self.catalog.parse()
         self.to_tree_level(self.catalog.data[0]['children'], self.catalogTreeWidget, 1)
+        self.updateLabel.setText('Последнее обновление: ' + time.ctime(self.catalog.data[0]['updated']))
         self.cache()
         self.refreshButton.setDisabled(False)
 
@@ -55,7 +58,6 @@ class App(QtWidgets.QMainWindow):
 class Catalog:
     def __init__(self, url: str):
         self.data = [{'name:': 'root', 'url': url, 'products': 0, 'categories': 0}]
-        self.version = ''
         self.url = url
 
     @staticmethod
@@ -80,6 +82,7 @@ class Catalog:
 
     def parse(self):
         Catalog.__load_children(self.data)
+        self.data[0]['updated'] = time.time()
 
 
 myApp = QtWidgets.QApplication(sys.argv)
